@@ -1,19 +1,31 @@
-use std::{net::SocketAddr, time::SystemTime, sync::{Arc, Mutex}};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Mutex},
+    time::SystemTime,
+};
 
-use axum::{routing::get, Router, extract::State};
+use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+
+use serde::{Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use tracing::Level;
 
 #[tokio::main]
 async fn main() {
-    let subscriber = tracing_subscriber::FmtSubscriber::builder().with_max_level(Level::DEBUG).finish();
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(Level::DEBUG)
+        .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("Setting default global subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Setting default global subscriber failed");
 
     let router = Router::new()
-        .route("/timestamp", get(root_get))
-        .route("/system", get(system_get))
-        .with_state(AppState { sys: Arc::new(Mutex::new(System::new())) });
+        // .route("/", get(root_get))
+        .route("/api/timestamp", get(api_timestamp_get))
+        .route("/api/info", get(api_info_get))
+        .with_state(AppState {
+            sys: Arc::new(Mutex::new(System::new())),
+        });
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::debug!("Listening on {}", addr);
@@ -32,7 +44,7 @@ async fn main() {
     ()
 }
 
-async fn root_get() -> String {
+async fn api_timestamp_get() -> String {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("Test thing")
@@ -45,16 +57,22 @@ struct AppState {
     sys: Arc<Mutex<System>>,
 }
 
-async fn system_get(State(state): State<AppState>) -> String {
+#[derive(Serialize)]
+struct InfoResponse {
+    cpu_usage: Vec<f32>,
+}
+
+#[axum::debug_handler]
+async fn api_info_get(State(state): State<AppState>) -> (StatusCode, Json<InfoResponse>) {
     let mut sys = state.sys.lock().unwrap();
 
-    let mut info = String::new();
     sys.refresh_cpu();
 
+    let mut response = InfoResponse { cpu_usage: vec![] };
+
     for cpu in sys.cpus() {
-        info.push_str(&cpu.cpu_usage().to_string());
-        info.push('\n');
+        response.cpu_usage.push(cpu.cpu_usage())
     }
 
-    info
+    (StatusCode::OK, Json(response))
 }
