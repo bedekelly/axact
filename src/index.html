@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axact</title>
+
+    <style>
+
+        .sr-only {
+            position: absolute;
+            opacity: 0.01;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow:hidden
+        }
+
+        .container {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-inline: auto;
+            height: 100%;
+            justify-content: center;
+
+            --usage: 0;
+        }
+
+        .bar {
+            position: relative;
+            width: 300px;
+            height: 50px;
+            background: #00000033;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar:before {
+            content: '';
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+
+            background: black;
+
+            transform: scaleX(calc(var(--usage) / 100));
+            transition: ease transform 0.1s;
+            transform-origin: left;
+        }
+    </style>
+</head>
+<body>
+
+    <main></main>
+
+    <script type="module">
+        import {h, render} from 'https://cdn.skypack.dev/preact';
+        import {interval, switchMap, startWith} from 'https://cdn.skypack.dev/rxjs';
+        import {ajax} from 'https://cdn.skypack.dev/rxjs/ajax';
+        import htm from 'https://cdn.skypack.dev/htm';
+
+        const html = htm.bind(h);
+
+        const mainElement = document.querySelector("main");
+
+        interval(1000).pipe(
+            startWith('tick'),
+            switchMap(() => ajax.getJSON("/api/cpus"))
+        )
+        .subscribe(response => 
+            render(html`
+                <div class="container">
+                    ${response.map((cpuUsage, i) => 
+                        html`
+                            <div key=${i} class="bar" style="--usage: ${cpuUsage}" role="meter" aria-minvalue="0" aria-maxvalue-"100" aria-valuenow="${cpuUsage}" aria-label="CPU ${i}" aria-valuetext="${cpuUsage.toFixed(0)}%" />
+                        `)}
+                </div>
+            `, mainElement
+            )
+        );
+        </script>
+</body>
+</html>
