@@ -22,7 +22,7 @@ async fn main() {
     let router = Router::new()
         // .route("/", get(root_get))
         .route("/api/timestamp", get(api_timestamp_get))
-        .route("/api/info", get(api_info_get))
+        .route("/api/cpus", get(api_cpus_get))
         .with_state(AppState {
             sys: Arc::new(Mutex::new(System::new())),
         });
@@ -63,16 +63,12 @@ struct InfoResponse {
 }
 
 #[axum::debug_handler]
-async fn api_info_get(State(state): State<AppState>) -> (StatusCode, Json<InfoResponse>) {
+async fn api_cpus_get(State(state): State<AppState>) -> (StatusCode, Json<Vec<f32>>) {
     let mut sys = state.sys.lock().unwrap();
 
     sys.refresh_cpu();
 
-    let mut response = InfoResponse { cpu_usage: vec![] };
-
-    for cpu in sys.cpus() {
-        response.cpu_usage.push(cpu.cpu_usage())
-    }
+    let response: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
 
     (StatusCode::OK, Json(response))
 }
