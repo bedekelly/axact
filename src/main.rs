@@ -35,9 +35,12 @@ async fn main() {
         loop {
             sys.refresh_cpu();
             let v: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
-            let mut cpus = app_state.cpus.lock().unwrap();
-            *cpus = v;
-            drop(cpus);
+
+            // CPUs in its own scope so we drop it / release the lock before sleeping!
+            {
+                let mut cpus = app_state.cpus.lock().unwrap();
+                *cpus = v;
+            }
 
             std::thread::sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
         }
