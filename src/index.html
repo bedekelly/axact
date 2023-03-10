@@ -50,7 +50,7 @@
             background: black;
 
             transform: scaleX(calc(var(--usage) / 100));
-            transition: ease transform 0.1s;
+            transition: ease transform 0.15s;
             transform-origin: left;
         }
     </style>
@@ -61,7 +61,6 @@
 
     <script type="module">
         import {h, render} from 'https://cdn.skypack.dev/preact';
-        import {interval, switchMap, startWith, map, tap} from 'https://cdn.skypack.dev/rxjs';
         import {webSocket} from 'https://cdn.skypack.dev/rxjs/webSocket';
         import htm from 'https://cdn.skypack.dev/htm';
 
@@ -71,7 +70,14 @@
 
         webSocket(`ws://${window.location.host}/wsapi/cpus`)
             .pipe(
-                tap(msg => console.log(msg))
+                obs => ({
+                    subscribe: subscriber => {
+                        obs.subscribe(val => {
+                                console.log(val);
+                                subscriber(val)
+                        })
+                    }
+                })
             )
         .subscribe(response => 
             render(html`
