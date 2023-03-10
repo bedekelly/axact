@@ -61,18 +61,18 @@
 
     <script type="module">
         import {h, render} from 'https://cdn.skypack.dev/preact';
-        import {interval, switchMap, startWith} from 'https://cdn.skypack.dev/rxjs';
-        import {ajax} from 'https://cdn.skypack.dev/rxjs/ajax';
+        import {interval, switchMap, startWith, map, tap} from 'https://cdn.skypack.dev/rxjs';
+        import {webSocket} from 'https://cdn.skypack.dev/rxjs/webSocket';
         import htm from 'https://cdn.skypack.dev/htm';
 
         const html = htm.bind(h);
 
         const mainElement = document.querySelector("main");
 
-        interval(1000).pipe(
-            startWith('tick'),
-            switchMap(() => ajax.getJSON("/api/cpus"))
-        )
+        webSocket(`ws://${window.location.host}/wsapi/cpus`)
+            .pipe(
+                tap(msg => console.log(msg))
+            )
         .subscribe(response => 
             render(html`
                 <div class="container">

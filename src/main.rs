@@ -4,7 +4,7 @@ use std::{
     time::{SystemTime},
 };
 
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router, response::{IntoResponse, Html}};
+use axum::{extract::{State, WebSocketUpgrade, ws::{WebSocket, Message}}, http::StatusCode, routing::get, Json, Router, response::{IntoResponse, Html}};
 
 
 use sysinfo::{CpuExt, System, SystemExt};
@@ -26,6 +26,7 @@ async fn main() {
         .route("/", get(root_get))
         .route("/api/timestamp", get(api_timestamp_get))
         .route("/api/cpus", get(api_cpus_get))
+        .route("/wsapi/cpus", get(wsapi_cpus_get))
         .with_state(app_state.clone());
 
 
@@ -83,6 +84,22 @@ async fn api_cpus_get(State(state): State<AppState>) -> (StatusCode, Json<Vec<f3
     println!("Lock time: {lock_elapsed}ms");
 
     (StatusCode::OK, Json(cpus))
+}
+
+#[axum::debug_handler]
+async fn wsapi_cpus_get(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
+    ws.on_upgrade(|sock| async {
+        realtime_cpus_stream(sock, state).await
+    })
+}
+
+async fn realtime_cpus_stream(mut ws: WebSocket, state: AppState) {
+    loop {
+        let cpus = state.cpus.lock().unwrap().clone();
+        let payload = serde_json::to_string(&cpus).unwrap();
+        ws.send(Message::Text(payload)).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+    }
 }
 
 async fn root_get() -> impl IntoResponse {
