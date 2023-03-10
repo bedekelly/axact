@@ -64,6 +64,7 @@ async fn main() {
         .serve(router.into_make_service())
         .await;
 
+    // Why not `unwrap()`? https://github.com/rust-lang/rust-analyzer/issues/14264
     match server {
         Ok(r) => r,
         Err(_) => {
