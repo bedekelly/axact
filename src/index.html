@@ -78,7 +78,8 @@
                 <div class="container">
                     ${response.map((cpuUsage, i) => 
                         html`
-                            <div key=${i} class="bar" style="--usage: ${cpuUsage}" role="meter" aria-minvalue="0" aria-maxvalue-"100" aria-valuenow="${cpuUsage}" aria-label="CPU ${i}" aria-valuetext="${cpuUsage.toFixed(0)}%" />
+                            <label class="sr-only" id="label-${i}" for="meter-${i}">CPU ${i}</label>
+                            <div key=${i} id="meter-${i}" class="bar" style="--usage: ${cpuUsage}" role="meter" aria-minvalue="0" aria-maxvalue-"100" aria-valuenow="${cpuUsage}" aria-labelledby="label-${i}" aria-valuetext="${cpuUsage.toFixed(0)}%" aria-live="off" />
                         `)}
                 </div>
             `, mainElement
