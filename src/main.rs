@@ -37,6 +37,7 @@ async fn main() {
             let v: Vec<f32> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
             let mut cpus = app_state.cpus.lock().unwrap();
             *cpus = v;
+            drop(cpus);
 
             std::thread::sleep(System::MINIMUM_CPU_UPDATE_INTERVAL);
         }
@@ -73,7 +74,10 @@ struct AppState {
 }
 
 async fn api_cpus_get(State(state): State<AppState>) -> (StatusCode, Json<Vec<f32>>) {
+    let lock_start = std::time::Instant::now();
     let cpus = state.cpus.lock().unwrap().clone();
+    let lock_elapsed = lock_start.elapsed().as_millis();
+    println!("Lock time: {lock_elapsed}ms");
 
     (StatusCode::OK, Json(cpus))
 }
